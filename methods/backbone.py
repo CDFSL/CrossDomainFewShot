@@ -317,7 +317,7 @@ class SimpleBlock(nn.Module):
     self.relu1 = nn.ReLU(inplace=True) if not leaky else nn.LeakyReLU(0.2, inplace=True)
     self.relu2 = nn.ReLU(inplace=True) if not leaky else nn.LeakyReLU(0.2, inplace=True)
 
-    self.parametrized_layers = [self.C1, self.C2, self.BN1, self.BN2]
+    self.parametrized_layers = [self.C1, self.C2]
 
     self.half_res = half_res
 
@@ -341,10 +341,10 @@ class SimpleBlock(nn.Module):
 
   def forward(self, x):
     out = self.C1(x)
-    out = self.BN1(out)
+    # out = self.BN1(out)
     out = self.relu1(out)
     out = self.C2(out)
-    out = self.BN2(out)
+    # out = self.BN2(out)
     short_out = x if self.shortcut_type == 'identity' else self.shortcut(x)
     out = out + short_out
     out = self.relu2(out)
