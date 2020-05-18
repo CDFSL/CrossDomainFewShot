@@ -305,14 +305,14 @@ class SimpleBlock(nn.Module):
     self.indim = indim
     self.outdim = outdim
     if self.maml:
-      self.C1 = FastDeconv(indim, outdim, kernel_size=3, stride=2 if half_res else 1, padding=1, bias=False)
+      self.C1 = FastDeconv(indim, outdim, kernel_size=3, stride=2 if half_res else 1, padding=1)
       # self.BN1 = BatchNorm2d_fw(outdim)
-      self.C2 = FastDeconv(outdim, outdim,kernel_size=3, padding=1,bias=False)
+      self.C2 = FastDeconv(outdim, outdim,kernel_size=3, padding=1)
       # self.BN2 = FeatureWiseTransformation2d_fw(outdim) # feature-wise transformation at the end of each residual block
     else:
-      self.C1 = FastDeconv(indim, outdim, kernel_size=3, stride=2 if half_res else 1, padding=1, bias=False)
+      self.C1 = FastDeconv(indim, outdim, kernel_size=3, stride=2 if half_res else 1, padding=1)
       # self.BN1 = nn.BatchNorm2d(outdim)
-      self.C2 = FastDeconv(outdim, outdim,kernel_size=3, padding=1,bias=False)
+      self.C2 = FastDeconv(outdim, outdim,kernel_size=3, padding=1)
       # self.BN2 = nn.BatchNorm2d(outdim)
     self.relu1 = nn.ReLU(inplace=True) if not leaky else nn.LeakyReLU(0.2, inplace=True)
     self.relu2 = nn.ReLU(inplace=True) if not leaky else nn.LeakyReLU(0.2, inplace=True)
@@ -324,10 +324,10 @@ class SimpleBlock(nn.Module):
     # if the input number of channels is not equal to the output, then need a 1x1 convolution
     if indim!=outdim:
       if self.maml:
-        self.shortcut = FastDeconv(indim, outdim, 1, 2 if half_res else 1, bias=False)
+        self.shortcut = FastDeconv(indim, outdim, 1, 2 if half_res else 1)
         # self.BNshortcut = FeatureWiseTransformation2d_fw(outdim)
       else:
-        self.shortcut = FastDeconv(indim, outdim, 1, 2 if half_res else 1, bias=False)
+        self.shortcut = FastDeconv(indim, outdim, 1, 2 if half_res else 1)
         # self.BNshortcut = nn.BatchNorm2d(outdim)
 
       self.parametrized_layers.append(self.shortcut)
@@ -404,10 +404,10 @@ class ResNet(nn.Module):
     self.fmaps = []
     assert len(list_of_num_layers)==4, 'Can have only four stages'
     if self.maml:
-      conv1 = FastDeconv(3, 64, kernel_size=7, stride=2, padding=3, bias=False)
+      conv1 = FastDeconv(3, 64, kernel_size=7, stride=2, padding=3)
       # bn1 = BatchNorm2d_fw(64)
     else:
-      conv1 = FastDeconv(3, 64, kernel_size=7, stride=2, padding=3, bias=False)
+      conv1 = FastDeconv(3, 64, kernel_size=7, stride=2, padding=3)
       # bn1 = nn.BatchNorm2d(64)
 
     relu = nn.ReLU(inplace=True) if not leakyrelu else nn.LeakyReLU(0.2, inplace=True)
