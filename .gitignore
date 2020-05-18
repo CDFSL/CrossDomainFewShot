@@ -54,3 +54,6 @@ output/checkpoints/**/*.tar
 output/log
 output/features
 output/results
+
+.python-version
+.idea

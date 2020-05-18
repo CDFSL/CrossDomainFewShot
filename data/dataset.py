@@ -1,6 +1,7 @@
 # This code is modified from https://github.com/facebookresearch/low-shot-shrink-hallucinate
 
 import torch
+import torch.utils.data
 from PIL import Image
 import json
 import numpy as np
