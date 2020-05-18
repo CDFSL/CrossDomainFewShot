@@ -5,6 +5,7 @@ import torch.nn as nn
 import math
 import torch.nn.functional as F
 from torch.nn.utils import weight_norm
+from methods.deconv import FastDeconv
 
 # --- gaussian initialize ---
 def init_layer(L):
@@ -304,15 +305,15 @@ class SimpleBlock(nn.Module):
     self.indim = indim
     self.outdim = outdim
     if self.maml:
-      self.C1 = Conv2d_fw(indim, outdim, kernel_size=3, stride=2 if half_res else 1, padding=1, bias=False)
-      self.BN1 = BatchNorm2d_fw(outdim)
-      self.C2 = Conv2d_fw(outdim, outdim,kernel_size=3, padding=1,bias=False)
-      self.BN2 = FeatureWiseTransformation2d_fw(outdim) # feature-wise transformation at the end of each residual block
+      self.C1 = FastDeconv(indim, outdim, kernel_size=3, stride=2 if half_res else 1, padding=1, bias=False)
+      # self.BN1 = BatchNorm2d_fw(outdim)
+      self.C2 = FastDeconv(outdim, outdim,kernel_size=3, padding=1,bias=False)
+      # self.BN2 = FeatureWiseTransformation2d_fw(outdim) # feature-wise transformation at the end of each residual block
     else:
-      self.C1 = nn.Conv2d(indim, outdim, kernel_size=3, stride=2 if half_res else 1, padding=1, bias=False)
-      self.BN1 = nn.BatchNorm2d(outdim)
-      self.C2 = nn.Conv2d(outdim, outdim,kernel_size=3, padding=1,bias=False)
-      self.BN2 = nn.BatchNorm2d(outdim)
+      self.C1 = FastDeconv(indim, outdim, kernel_size=3, stride=2 if half_res else 1, padding=1, bias=False)
+      # self.BN1 = nn.BatchNorm2d(outdim)
+      self.C2 = FastDeconv(outdim, outdim,kernel_size=3, padding=1,bias=False)
+      # self.BN2 = nn.BatchNorm2d(outdim)
     self.relu1 = nn.ReLU(inplace=True) if not leaky else nn.LeakyReLU(0.2, inplace=True)
     self.relu2 = nn.ReLU(inplace=True) if not leaky else nn.LeakyReLU(0.2, inplace=True)
 
@@ -323,14 +324,14 @@ class SimpleBlock(nn.Module):
     # if the input number of channels is not equal to the output, then need a 1x1 convolution
     if indim!=outdim:
       if self.maml:
-        self.shortcut = Conv2d_fw(indim, outdim, 1, 2 if half_res else 1, bias=False)
-        self.BNshortcut = FeatureWiseTransformation2d_fw(outdim)
+        self.shortcut = FastDeconv(indim, outdim, 1, 2 if half_res else 1, bias=False)
+        # self.BNshortcut = FeatureWiseTransformation2d_fw(outdim)
       else:
-        self.shortcut = nn.Conv2d(indim, outdim, 1, 2 if half_res else 1, bias=False)
-        self.BNshortcut = nn.BatchNorm2d(outdim)
+        self.shortcut = FastDeconv(indim, outdim, 1, 2 if half_res else 1, bias=False)
+        # self.BNshortcut = nn.BatchNorm2d(outdim)
 
       self.parametrized_layers.append(self.shortcut)
-      self.parametrized_layers.append(self.BNshortcut)
+      # self.parametrized_layers.append(self.BNshortcut)
       self.shortcut_type = '1x1'
     else:
       self.shortcut_type = 'identity'
@@ -344,7 +345,7 @@ class SimpleBlock(nn.Module):
     out = self.relu1(out)
     out = self.C2(out)
     out = self.BN2(out)
-    short_out = x if self.shortcut_type == 'identity' else self.BNshortcut(self.shortcut(x))
+    short_out = x if self.shortcut_type == 'identity' else self.shortcut(x)
     out = out + short_out
     out = self.relu2(out)
     return out
@@ -403,19 +404,19 @@ class ResNet(nn.Module):
     self.fmaps = []
     assert len(list_of_num_layers)==4, 'Can have only four stages'
     if self.maml:
-      conv1 = Conv2d_fw(3, 64, kernel_size=7, stride=2, padding=3, bias=False)
-      bn1 = BatchNorm2d_fw(64)
+      conv1 = FastDeconv(3, 64, kernel_size=7, stride=2, padding=3, bias=False)
+      # bn1 = BatchNorm2d_fw(64)
     else:
-      conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3, bias=False)
-      bn1 = nn.BatchNorm2d(64)
+      conv1 = FastDeconv(3, 64, kernel_size=7, stride=2, padding=3, bias=False)
+      # bn1 = nn.BatchNorm2d(64)
 
     relu = nn.ReLU(inplace=True) if not leakyrelu else nn.LeakyReLU(0.2, inplace=True)
     pool1 = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
 
     init_layer(conv1)
-    init_layer(bn1)
+    # init_layer(bn1)
 
-    trunk = [conv1, bn1, relu, pool1]
+    trunk = [conv1, relu, pool1]
 
     indim = 64
     for i in range(4):
