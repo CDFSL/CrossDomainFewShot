@@ -9,27 +9,28 @@ from data.datamgr import SimpleDataManager
 from options import get_best_file, get_assigned_file
 
 # t-sne feature
-def tsne(model, data_loader):
+def tsne(model, data_loaders):
   all_feats = None
   all_labels = None
-  for (x, y) in data_loader:
-    x = x.cuda()
-    feats = model(x)
-    feats = feats.reshape(feats.shape[0], -1).data.cpu().numpy()
-    labels = y.numpy()
+  for i, data_loader in enumerate(data_loaders):
+    for (x, y) in data_loader:
+      x = x.cuda()
+      feats = model(x)
+      feats = feats.reshape(feats.shape[0], -1).data.cpu().numpy()
+      labels = y.numpy() + i * 1000
 
-    all_feats = feats if all_feats is None else np.concatenate((all_feats, feats), axis=0)
-    all_labels = labels if all_labels is None else np.concatenate((all_labels, labels), axis=0)
-    break
+      all_feats = feats if all_feats is None else np.concatenate((all_feats, feats), axis=0)
+      all_labels = labels if all_labels is None else np.concatenate((all_labels, labels), axis=0)
+      break
 
   all_embeddings = TSNE(n_components=2).fit_transform(all_feats)
   return all_embeddings, all_labels
 
 
 def get_visualize_data(
-        dataset='multi', save_epoch=399, name='tmp', method='baseline', model='ResNet10', split='novel',
+        datasets='multi', save_epoch=399, name='tmp', method='baseline', model='ResNet10', split='novel',
         data_dir='./filelists', save_dir='./output'):
-  print('Visualizing! {} dataset with {} epochs of {}({})'.format(dataset, save_epoch, name, method))
+  print('Visualizing! {} datasets with {} epochs of {}({})'.format(datasets, save_epoch, name, method))
 
   print('\nStage 1: saving features')
   # dataset
@@ -39,9 +40,13 @@ def get_visualize_data(
   else:
     image_size = 224
   split = split
-  loadfile = os.path.join(data_dir, dataset, split + '.json')
-  datamgr         = SimpleDataManager(image_size, batch_size = 64)
-  data_loader      = datamgr.get_data_loader(loadfile, aug = False)
+
+  data_loaders = []
+  for dataset in datasets.split():
+    loadfile = os.path.join(data_dir, dataset, split + '.json')
+    datamgr         = SimpleDataManager(image_size, batch_size = 64)
+    data_loader      = datamgr.get_data_loader(loadfile, aug = False)
+    data_loaders.append(data_loader)
 
   print('  build feature encoder')
   # feature encoder
@@ -78,4 +83,4 @@ def get_visualize_data(
   model.load_state_dict(state)
   model.eval()
 
-  return tsne(model, data_loader)
+  return tsne(model, data_loaders)
